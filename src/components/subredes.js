@@ -12,12 +12,12 @@ const SubRedes = (props) => {
 
                 <div class="card">
                     <p>Host mínimo</p>
-                    <p>{props.minHostArray}</p>
+                    <p>{props.minHost}</p>
                 </div>
 
                 <div class="card">
                     <p>Host máximo</p>
-                    <p>{props.maxHostArray}</p>
+                    <p>{props.maxHost}</p>
                 </div>
 
                 <div class="card">
@@ -27,7 +27,7 @@ const SubRedes = (props) => {
 
                 <div class="card">
                     <p>Hosts por red</p>
-                    <p>{props.delta}</p>
+                    <p>{props.salto}</p>
                 </div>
 
             </section>

@@ -5,7 +5,7 @@ const Red = (props) => {
         <div className='red'>
             <section class="result" id="results">
                 <div class="card">
-                    <p>Número de hosts</p>
+                    <p>Número de hosts/net</p>
                     <p id="noHosts">{props.noHost}</p>
                 </div>
 
@@ -15,7 +15,7 @@ const Red = (props) => {
                 </div>
 
                 <div class="card">
-                    <p>Netmask</p>
+                    <p>Mascara</p>
                     <p id="netmask">{props.netmask}</p>
                 </div>           
 

@@ -7,7 +7,7 @@ const SubRedes = (props) => {
                 <div class="subnet-title">Subred {props.i} </div>
                 <div class="card">
                     <p>Dirección de red</p>
-                    <p>{props.networkAddress}</p>
+                    <p>{props.dirRed}</p>
                 </div>
 
                 <div class="card">

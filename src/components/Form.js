@@ -7,24 +7,17 @@ import 'react-toastify/dist/ReactToastify.css';
 const Form = () => {
     const [ip, setIp] = useState("")
     const [boton, setBoton] = useState(false)
-    const [enteredMask, setMask] = useState("")
+    const [inputMask, setMask] = useState("")
     const [datos, setDatos] = useState([])
     const [red, SetRed] = useState({
         hosts: '',
-        classOfIp: '',
-        arrayMask: ''
+        classIp: '',
+        netMask: ''
     }
     )
 
     const onFormUpdate = (event) => {
         const { name, value, type } = event.target
-        /*setFormDetail(prev => {
-            return {
-                ...prev,
-                [name]: value
-
-            }
-        })*/
 
         if (name === "ip")
             setIp(value);
@@ -34,16 +27,13 @@ const Form = () => {
     const handleSubmit = () => {
         setDatos([])
         
-        //Extrayendo los elementos de la pagina:
-
-
-
-        //Expresiones regulares.
+        //Validaciones
         
-        const expIP = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-        const expMask = /^([0-9]|[1-2][0-9]|3[0-2])$/;
-      
-        if(!expIP.exec(ip)) {
+        const validacionIP = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+
+        const validacionMask = /^([0-9]|[1-2][0-9]|3[0-2])$/;
+        //mensajes de error
+        if(!validacionIP.exec(ip)) {
             toast.error("Valor ip no valido", {
                 position: "bottom-center"
             });
@@ -51,62 +41,61 @@ const Form = () => {
           return;
         }
       
-        if(!expMask.exec(enteredMask)) {
+        if(!validacionMask.exec(inputMask)) {
             toast.errror("Valor de mascara no valido", {
                 position: "bottom-center",
             });
           return;
         }
         setBoton(true)
-        //Ocultando mensaje de error.
-        //errorDialog.style.display = "none";
 
-        //Convirtiendo la IP a un arreglo de numeros enteros.
-        const arrayIP = getArrayIP(ip);
 
-        //Convertiendo la mascara a entero.
-        const mask = parseInt(enteredMask);
+        //Dividiendo la direccion ip en un arreglo
+        const dirIp = getDirIp(ip);
 
-        //Conviertiendo la mascara a un arreglo.
-        const arrayMask = getArrayMask(mask);
+        //String a entero
+        const mask = parseInt(inputMask);
+
+        //Pasando mascara a decimal.
+        const netMask = getnetMask(mask);
 
         //Obteniendo la direccion de red.
-        let networkAddress = [arrayIP[0], 0, 0, 0];
-        //Obteniendo la clase de la red.
-        let classOfIp = "A";
-        let numSubnets = Math.pow(2, mask - 8);
+        let dirRed = [dirIp[0], 0, 0, 0];
+        
+        //Obteniendo clase
+        let classIp = "A";
+        let numSubRedes = Math.pow(2, mask - 8);
         let hosts = Math.pow(2, 24) - 2;
-        if (arrayIP[0] >= 128 && arrayIP[0] <= 191) {
-            numSubnets = Math.pow(2, mask - 16);
+        if (dirIp[0] >= 128 && dirIp[0] <= 191) {
+            numSubRedes = Math.pow(2, mask - 16);
             hosts = Math.pow(2, 16) - 2;
-            networkAddress = [arrayIP[0], arrayIP[1], 0, 0];
-            classOfIp = "B";
-        } else if (arrayIP[0] >= 192 && arrayIP[0] <= 223) {
-            numSubnets = Math.pow(2, mask - 24);
+            dirRed = [dirIp[0], dirIp[1], 0, 0];
+            classIp = "B";
+        } else if (dirIp[0] >= 192 && dirIp[0] <= 223) {
+            numSubRedes = Math.pow(2, mask - 24);
             hosts = Math.pow(2, 8) - 2;
-            networkAddress = [arrayIP[0], arrayIP[1], arrayIP[2], 0];
-            classOfIp = "C";
-        } else if (arrayIP[0] >= 224 && arrayIP[0] <= 239) {
-            classOfIp = "D"
-        } else if (arrayIP[0] >= 240 && arrayIP[0] <= 255) {
-            classOfIp = "E";
+            dirRed = [dirIp[0], dirIp[1], dirIp[2], 0];
+            classIp = "C";
+        } else if (dirIp[0] >= 224 && dirIp[0] <= 239) {
+            classIp = "D"
+        } else if (dirIp[0] >= 240 && dirIp[0] <= 255) {
+            classIp = "E";
         }
         SetRed(
             prev => ({
                 hosts,
-                classOfIp,
-                arrayMask
+                classIp,
+                netMask
             })
         )
 
 
-        //Salto
         const delta = Math.pow(2, 32 - mask);
         let broadcastArray = getHostMask(32 - mask);
         for (let i = 0; i < 4; i++)
-            broadcastArray[i] |= networkAddress[i];
+            broadcastArray[i] |= dirRed[i];
 
-        let minHostArray = networkAddress.map((num) => num);
+        let minHostArray = dirRed.map((num) => num);
         let maxHostArray = broadcastArray.map((num) => num);
         minHostArray[3] += 1;
         maxHostArray[3] -= 1;
@@ -116,12 +105,19 @@ const Form = () => {
 
 
 
-
-        for (let i = 1; i <= numSubnets; i++) {
+        if(numSubRedes>500){
+            
+            toast.success("Hay "+numSubRedes+" SubRedes, pero se muestran 500", {
+                position: "bottom-center",
+            })
+            
+            numSubRedes=500;
+        }
+        for (let i = 1; i <= numSubRedes; i++) {
+            let network=[...dirRed]
             let newItem = {
                 i,
-                arrayMask,
-                networkAddress,
+                dirRed:network,
                 minHostArray,
                 maxHostArray,
                 broadcastArray,
@@ -129,41 +125,29 @@ const Form = () => {
             }
 
             setDatos(prev => [...prev, newItem])
-            //Obteniendo el broadcast
+            
+            //Broadcast
             broadcastArray = getHostMask(32 - mask);
-            sum(networkAddress, delta);
+            sum(dirRed, delta);
             for (let j = 0; j < 4; j++)
-                broadcastArray[j] |= networkAddress[j];
+                broadcastArray[j] |= dirRed[j];
 
-            //Obteniendo el host minimo y maximo de la red
-            minHostArray = networkAddress.map((num) => num);
+            //minimo y maximo
+            minHostArray = dirRed.map((num) => num);
             maxHostArray = broadcastArray.map((num) => num);
             minHostArray[3] += 1;
             maxHostArray[3] -= 1;
         }
-        console.log(datos)
+        console.log(datos[0])
     }
 
 
 
 
 
-    const sum = (arr, x) => {
-        let rem = 0;
-        for (let i = 3; i >= 0; i--) {
-            if (i === 3) {
-                arr[i] += x;
-            }
-
-            arr[i] += rem;
-            rem = Math.floor(arr[i] / 256);
-            arr[i] %= 256;
-        }
-
-        return arr;
-    };
-
-    const convertIPToString = (ip) => {
+   
+    //se agregan los puntos al arreglo
+    const toString = (ip) => {
         let ipString = "";
         for (let i = 0; i < 4; i++) {
             ipString += ip[i] + "";
@@ -190,41 +174,54 @@ const Form = () => {
 
         return hostMask;
     };
+    const sum = (arr, x) => {
+        let rem = 0;
+        for (let i = 3; i >= 0; i--) {
+            if (i === 3) {
+                arr[i] += x;
+            }
 
-    const getArrayMask = (mask) => {
-        const maskArray = [];
+            arr[i] += rem;
+            rem = Math.floor(arr[i] / 256);
+            arr[i] %= 256;
+        }
+
+        return arr;
+    };
+    const getnetMask = (mask) => {
+        const aux = [];
 
         let power = 128;
         for (let i = 0; i < 32; i++) {
             if (i % 8 === 0) {
-                maskArray.push(0);
+                aux.push(0);
                 power = 128;
             } else
                 power = Math.ceil(power / 2);
 
             if (mask > 0) {
-                maskArray[maskArray.length - 1] += power;
+                aux[aux.length - 1] += power;
                 mask -= 1;
             }
         }
 
-        return maskArray;
+        return aux;
     };
 
-    const getArrayIP = (ip) => {
-        const arrayIP = [];
+    const getDirIp = (ip) => {
+        const dirIp = [];
         let num = "";
         for (let c of ip) {
             if (c === ".") {
-                arrayIP.push(parseInt(num));
+                dirIp.push(parseInt(num));
                 num = "";
             } else {
                 num += c;
             }
         }
 
-        arrayIP.push(parseInt(num));
-        return arrayIP;
+        dirIp.push(parseInt(num));
+        return dirIp;
     }
 
 
@@ -232,28 +229,28 @@ const Form = () => {
         <div>
             <div className='container-form'>
                 <form className='form' action='none'>
-                    <input placeholder='ip' type='text' onChange={onFormUpdate} name='ip' value={ip} />
-                    <input placeholder='mask' type='text' onChange={onFormUpdate} name='mascara' value={enteredMask} />
+                    <input placeholder='IP' type='text' onChange={onFormUpdate} name='ip' value={ip} />
+                    <input placeholder='NetMask' type='text' onChange={onFormUpdate} name='mascara' value={inputMask} />
                     <button type='button' onClick={handleSubmit}>Calcular</button>
                 </form>
             </div>
             <ToastContainer />
-            {boton&&<Red noHost={red.hosts} clase={red.classOfIp} netmask={convertIPToString(red.arrayMask)} />}
+            {boton&&<Red noHost={red.hosts} clase={red.classIp} netmask={toString(red.netMask)} />}
             <div className='subredes'>
             {datos.length>0&&
                 datos.map((dato) => (
                     <SubRedes
                         i={dato.i}
 
-                        networkAddress={convertIPToString(dato.networkAddress)}
+                        dirRed={toString(dato.dirRed)}
 
-                        minHostArray={convertIPToString(dato.minHostArray)}
+                        minHostArray={toString(dato.minHostArray)}
 
-                        maxHostArray={convertIPToString(dato.maxHostArray)}
+                        maxHostArray={toString(dato.maxHostArray)}
 
-                        broadcastArray={convertIPToString(dato.broadcastArray)}
+                        broadcastArray={toString(dato.broadcastArray)}
 
-                        delta={dato.delta}
+                        delta={dato.delta - 2}
                     />
 
                 ))

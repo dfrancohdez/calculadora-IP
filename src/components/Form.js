@@ -8,12 +8,14 @@ const Form = () => {
     const [ip, setIp] = useState("")
     const [inputMask, setMask] = useState("")
     const [datos, setDatos] = useState([])
+    const [buscar, setBuscar] = useState("")
+    const [buscarBoton,setBuscarBoton]=useState(false)
     const [validacion,setValidacion]=useState(false)
     const [red, SetRed] = useState({
         hosts: '',
         classIp: '',
         netMask: '',
-        numSubRedes:'',
+        numSubRedes: '',
     }
     )
 
@@ -24,12 +26,17 @@ const Form = () => {
             setIp(value);
         if (name === "mascara")
             setMask(value);
+        if (name === "buscar"){
+            setBuscar(value);
+            //setBuscarBoton(false)
+        }
+            
     }
     const handleSubmit = () => {
         setDatos([])
-        
+
         //Validaciones
-        
+
         const validacionIP = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 
         const validacionMask = /^([0-9]|[1-2][0-9]|3[0-2])$/;
@@ -40,7 +47,7 @@ const Form = () => {
                 position: "bottom-center"
             });
             console.log("error")
-          return;
+            return;
         }
       
         if(!validacionMask.exec(inputMask)) {
@@ -48,7 +55,7 @@ const Form = () => {
             toast.error("Valor de mascara no valido", {
                 position: "bottom-center",
             });
-          return;
+            return;
         }
         setValidacion(true)
 
@@ -64,7 +71,7 @@ const Form = () => {
         let dirRed;
         let classIp;
         let numSubRedes;
-        let hosts; 
+        let hosts;
         //identifico clase
         if (dirIp[0] >= 128 && dirIp[0] <= 191) {
             numSubRedes = Math.pow(2, mask - 16);//numero de subRedes
@@ -80,19 +87,19 @@ const Form = () => {
             classIp = "D"
         } else if (dirIp[0] >= 240 && dirIp[0] <= 255) {
             classIp = "E";
-        }else{
+        } else {
             numSubRedes = Math.pow(2, mask - 8);
             hosts = Math.pow(2, 24) - 2;
             dirRed = [dirIp[0], 0, 0, 0];
             classIp = "A";
         }
-        const num=numSubRedes;
+        const num = numSubRedes;
         SetRed(
-            prev =>({
-                hosts:hosts,
-                classIp:classIp,
-                netMask:netMask,
-                numSubRedes:num
+            prev => ({
+                hosts: hosts,
+                classIp: classIp,
+                netMask: netMask,
+                numSubRedes: num
             })
         )
 
@@ -109,28 +116,28 @@ const Form = () => {
         let minHost = dirRed.map((num) => num);//copio el arreglo a otro arreglo
         let maxHost = broadcastArray.map((num) => num);//copio el arreglo a otro arreglo
         //a la direccion de red le sumo uno: 127.0.0.0->127.0.0.1
-        minHost[3] += 1; 
+        minHost[3] += 1;
         //a la direccion de broadcast le resto uno: 127.0.0.255->127.0.0.254
         maxHost[3] -= 1;
 
 
 
         //limito el arreglo a 500 items
-        if(numSubRedes>500){
-            
-            toast.success("Hay "+numSubRedes+" SubRedes, pero se muestran 500", {
+        if (numSubRedes > 500) {
+
+            toast.success("Hay " + numSubRedes + " SubRedes, pero se muestran 500", {
                 position: "bottom-center",
             })
-            
-            numSubRedes=500;
+
+            numSubRedes = 500;
         }
         //recorro todas las subredes
         for (let i = 1; i <= numSubRedes; i++) {
             //creo nuevo objeto, ya que la funcion sum lo modifica al pasarse por referencia
-            let network=[...dirRed]
+            let network = [...dirRed]
             let newItem = {
                 i,
-                dirRed:network,
+                dirRed: network,
                 minHost,
                 maxHost,
                 broadcastArray,
@@ -138,7 +145,7 @@ const Form = () => {
             }
             //guardo los datos
             setDatos(prev => [...prev, newItem])
-            
+
             //Broadcast
             broadcastArray = getHostMask(32 - mask);
             siguienteRed(dirRed, salto);//sumo la direccion de red con los host por red
@@ -162,7 +169,7 @@ const Form = () => {
 
 
 
-   
+
     //se agregan los puntos al arreglo
     const toString = (ip) => {
         let ipString = "";
@@ -244,7 +251,10 @@ const Form = () => {
         dirIp.push(parseInt(num));
         return dirIp;
     }
+    const buscarRed = () => {
 
+        setBuscarBoton(prev=>!prev)
+    }
 
     return (
         <div>
@@ -255,28 +265,49 @@ const Form = () => {
                     <button type='button' onClick={handleSubmit}>Calcular</button>
                 </form>
             </div>
+            <div className='container-form'>
+                <form className='form' action='none'>
+                    <input placeholder='Buscar' type='text' onChange={onFormUpdate} name='buscar' value={buscar} />
+                    <button type='button' onClick={buscarRed}>Buscar</button>
+                </form>
+            </div>
             <ToastContainer />
             {validacion&&<Red noSubRedes={red.numSubRedes} noHost={red.hosts} clase={red.classIp} netmask={toString(red.netMask)} />}
             <div className='subredes'>
-            {datos.length>0&&
-                datos.map((dato) => (
+                {datos.length > 0 && (!buscarBoton) &&
+                    datos.map((dato) => (
+                        <SubRedes
+                            i={dato.i}
+
+                            dirRed={toString(dato.dirRed)}
+
+                            minHost={toString(dato.minHost)}
+
+                            maxHost={toString(dato.maxHost)}
+
+                            broadcastArray={toString(dato.broadcastArray)}
+
+                            salto={dato.salto - 2}
+                        />
+
+                    ))
+                }
+                {datos.length > 0 &&(buscarBoton&&buscar!="")&&
                     <SubRedes
-                        i={dato.i}
+                        i={datos[buscar-1].i}
 
-                        dirRed={toString(dato.dirRed)}
+                        dirRed={toString(datos[buscar-1].dirRed)}
 
-                        minHost={toString(dato.minHost)}
+                        minHost={toString(datos[buscar-1].minHost)}
 
-                        maxHost={toString(dato.maxHost)}
+                        maxHost={toString(datos[buscar-1].maxHost)}
 
-                        broadcastArray={toString(dato.broadcastArray)}
+                        broadcastArray={toString(datos[buscar-1].broadcastArray)}
 
-                        salto={dato.salto - 2}
+                        salto={datos[buscar-1].salto - 2}
                     />
+                }
 
-                ))
-            }
-            
             </div>
         </div>
     )

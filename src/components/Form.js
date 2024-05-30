@@ -6,9 +6,9 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 const Form = () => {
     const [ip, setIp] = useState("")
-    const [boton, setBoton] = useState(false)
     const [inputMask, setMask] = useState("")
     const [datos, setDatos] = useState([])
+    const [validacion,setValidacion]=useState(false)
     const [red, SetRed] = useState({
         hosts: '',
         classIp: '',
@@ -35,6 +35,7 @@ const Form = () => {
         const validacionMask = /^([0-9]|[1-2][0-9]|3[0-2])$/;
         //mensajes de error
         if(!validacionIP.exec(ip)) {
+            setValidacion(false);
             toast.error("Valor ip no valido", {
                 position: "bottom-center"
             });
@@ -43,12 +44,13 @@ const Form = () => {
         }
       
         if(!validacionMask.exec(inputMask)) {
+            setValidacion(false);
             toast.error("Valor de mascara no valido", {
                 position: "bottom-center",
             });
           return;
         }
-        setBoton(true)
+        setValidacion(true)
 
 
         //Dividiendo la direccion ip en un arreglo
@@ -97,7 +99,7 @@ const Form = () => {
         //host por red
         const salto = Math.pow(2, 32 - mask);
         //obtengo la mascara de los host: 0.0.255.255
-        //envio cantidas de bits de host
+        //envio cantidad de bits de host
         let broadcastArray = getHostMask(32 - mask);
         //uno la direccion de red con la mascara de host
         //127.0.0.0 || 0.0.0.255 -> 127.0.0.255
@@ -174,16 +176,16 @@ const Form = () => {
     //obtengo la mascara de los host: 0.0.255.255
     const getHostMask = (hostBits) => {
         const aux = [];
-        let power = 128;
+        let suma = 128;
         for (let i = 0; i < 32; i++) {
             if (i % 8 === 0) {
                 aux.push(0);
-                power = 128;
+                suma = 128;
             } else
-                power = Math.ceil(power / 2);
+                suma = Math.ceil(suma / 2);//128 64 32 16 8 4 2 1=255
 
-            if (i >= 32 - hostBits) {
-                aux[aux.length - 1] += power;
+            if (i >= 32 - hostBits) {//hasta que legue al bit del host
+                aux[aux.length - 1] += suma;
             }
         }
 
@@ -193,47 +195,49 @@ const Form = () => {
     const getnetMask = (mask) => {
         const aux = [];
 
-        let power = 128;
+        let suma = 128;
         for (let i = 0; i < 32; i++) {
             if (i % 8 === 0) {
                 aux.push(0);
-                power = 128;
+                suma = 128;
             } else
-                power = Math.ceil(power / 2);
+                suma = Math.ceil(suma / 2);
 
-            if (mask > 0) {
-                aux[aux.length - 1] += power;
+            if (mask > 0) {//i
+                aux[aux.length - 1] += suma;//128 64 32 16 8 4 2 1=255
                 mask -= 1;
             }
         }
 
         return aux;
     };
-    const siguienteRed = (arr, x) => {
-        let rem = 0;
+    const siguienteRed = (dir, salto) => {
+        let aux = 0;
+
         for (let i = 3; i >= 0; i--) {
             if (i === 3) {
-                arr[i] += x;
+                dir[i] += salto;
             }
 
-            arr[i] += rem;
-            rem = Math.floor(arr[i] / 256);
-            arr[i] %= 256;
+            dir[i] += aux;
+            aux = Math.floor(dir[i] / 256);
+            dir[i] %= 256;//se pasa de 256
         }
 
-        return arr;
+        return dir;
     };
 
-
+    //obteniendo el arreglo de la direccion ip
     const getDirIp = (ip) => {
-        const dirIp = [];
         let num = "";
-        for (let c of ip) {
-            if (c === ".") {
+        const dirIp = [];
+
+        for (let aux of ip) {
+            if (aux === ".") {//encuentro punto, solo encuentra 3
                 dirIp.push(parseInt(num));
                 num = "";
             } else {
-                num += c;
+                num += aux;
             }
         }
 
@@ -252,7 +256,7 @@ const Form = () => {
                 </form>
             </div>
             <ToastContainer />
-            {boton&&<Red noSubRedes={red.numSubRedes} noHost={red.hosts} clase={red.classIp} netmask={toString(red.netMask)} />}
+            {validacion&&<Red noSubRedes={red.numSubRedes} noHost={red.hosts} clase={red.classIp} netmask={toString(red.netMask)} />}
             <div className='subredes'>
             {datos.length>0&&
                 datos.map((dato) => (
